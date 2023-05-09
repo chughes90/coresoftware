@@ -33,6 +33,9 @@ class TrkrClusterHitAssoc;
 class TrkrHitSetContainer;
 class TrkrHitTruthAssoc;
 
+class TNtuple;
+class TFile;
+
 class TrackEvaluation : public SubsysReco
 {
   public:
@@ -63,7 +66,23 @@ class TrackEvaluation : public SubsysReco
   void set_flags( int flags )
   { m_flags = flags; }
 
+  //histograms
+  void set_savehistograms( bool value ) { m_savehistograms = value; }
+  void set_histogram_outputfile(const std::string &outputfile) {m_histogramfilename = outputfile;}
+
   private:
+
+  //histograms
+  bool m_savehistograms = true;
+  std::string m_histogramfilename = "TpcdEdx.root";
+  std::unique_ptr<TFile> m_histogramfile = nullptr;
+  void create_histograms();
+
+  // TNtuple // histogram
+  TNtuple *h_dEdx = nullptr;
+  TNtuple *h_diagnostic = nullptr;
+  TNtuple *h_cluster_field = nullptr;
+  TNtuple *h_truth_trks = nullptr;
 
   //! load nodes
   int load_nodes( PHCompositeNode* );

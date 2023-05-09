@@ -366,6 +366,8 @@ void PHG4TpcDirectLaser::SetupLasers()
 
     // append
     m_lasers.push_back(laser);
+    //if( i == 0 || i == 3 || i == 4 || i== 7 ) m_lasers.push_back(laser);
+    //if( i == 3 ) m_lasers.push_back(laser); //only 1 laser (Charles test)
   }
 }
 

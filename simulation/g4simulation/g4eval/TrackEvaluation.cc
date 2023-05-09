@@ -39,6 +39,9 @@
 #include <trackbase_historic/SvtxTrackMap.h>
 
 #include <TVector3.h>
+//Charles Changes 04.07.23
+#include <TNtuple.h>
+#include <TFile.h>
 
 #include <algorithm>
 #include <bitset>
@@ -278,6 +281,25 @@ namespace
     return -1;
   }
 
+  //Charles Changes 04.07.23
+  //calculate truncated mean from std::vector (used to get most probably dE/dx value)
+  float truncated_mean(const std::vector<float>& values, float percent_truncated) {
+    if (values.empty()) {
+        return 0.0;
+    }
+    int num_truncate = static_cast<int>(values.size() * percent_truncated / 100.0);
+    if (num_truncate >= static_cast<int>(values.size())) {
+        return 0.0;
+    }
+    std::vector<float> sorted_values(values);
+    std::sort(sorted_values.begin(), sorted_values.end());
+    float sum = 0.0;
+    for (int i = num_truncate; i < static_cast<int>(values.size()) - num_truncate; ++i) {
+        sum += sorted_values[i];
+    }
+    return sum / static_cast<float>(values.size() - 2 * num_truncate);
+  } 
+
   // print to stream
   [[maybe_unused]] inline std::ostream& operator << (std::ostream& out, const TrackEvaluationContainerv1::ClusterStruct& cluster )
   {
@@ -327,6 +349,8 @@ int TrackEvaluation::Init(PHCompositeNode* topNode )
   auto newNode = new PHIODataNode<PHObject>( new TrackEvaluationContainerv1, "TrackEvaluationContainer","PHObject");
   evalNode->addNode(newNode);
 
+  if( m_savehistograms ) create_histograms();
+
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -334,6 +358,18 @@ int TrackEvaluation::Init(PHCompositeNode* topNode )
 int TrackEvaluation::InitRun(PHCompositeNode* )
 { return Fun4AllReturnCodes::EVENT_OK; }
 
+//_____________________________________________________________________
+void TrackEvaluation::create_histograms()
+{
+  std::cout << "TrackEvaluation::makeHistograms - writing evaluation histograms to: " << m_histogramfilename << std::endl;
+  m_histogramfile.reset( new TFile(m_histogramfilename.c_str(), "RECREATE") );
+  m_histogramfile->cd();
+
+  h_dEdx = new TNtuple("dEdx","dEdx info","dEdx:px:py:pz:primary");
+  h_diagnostic = new TNtuple("diagnostic","diagnostic info per cluster", "dE:dx:px:py:pz:layer");
+  h_cluster_field = new TNtuple("cluster_field","cluster locations in all events", "x:y:z");
+  h_truth_trks = new TNtuple("truth_trks","truth track info in all events","primary:px:py:pz");
+}
 //_____________________________________________________________________
 int TrackEvaluation::process_event(PHCompositeNode* topNode)
 {
@@ -358,7 +394,19 @@ int TrackEvaluation::process_event(PHCompositeNode* topNode)
 
 //_____________________________________________________________________
 int TrackEvaluation::End(PHCompositeNode* )
-{ return Fun4AllReturnCodes::EVENT_OK; }
+{ 
+
+  if( m_savehistograms && m_histogramfile )
+  {
+    m_histogramfile->cd();
+    for(const auto& o:std::initializer_list<TObject*>({ h_dEdx,h_diagnostic,h_cluster_field,h_truth_trks }))
+    { if( o ) o->Write(); }
+    m_histogramfile->Close();
+  }
+
+  return Fun4AllReturnCodes::EVENT_OK; 
+
+}
 
 //_____________________________________________________________________
 int TrackEvaluation::load_nodes( PHCompositeNode* topNode )
@@ -501,10 +549,22 @@ void TrackEvaluation::evaluate_tracks()
     auto particle = m_g4truthinfo->GetParticle(id);
     track_struct.embed = get_embed(particle);
     ::add_truth_information(track_struct, particle,m_g4truthinfo);
+    std::cout<<"Track ID: "<<id<<", Truth track p = "<< track_struct.truth_p <<", is primary ?: "<< track_struct.is_primary <<std::endl;
+    h_truth_trks->Fill( track_struct.is_primary, track_struct.truth_px, track_struct.truth_py, track_struct.truth_pz );
 
     // running iterator over track states, used to match a given cluster to a track state
     auto state_iter = track->begin_states();
     // loop over clusters
+
+    // Charles changes 04.07.23
+    int current_clus=0;
+    TVector3 clus_coord_prev(0,0,0);
+    TVector3 displacement(0,0,0);
+    TVector3 trackp_curr(0,0,0);
+
+    float dE, dx;
+    std::vector<float> dEdx_vec; //fill with the dEdx calculated values along the track
+
     for( const auto& cluster_key:get_cluster_keys( track ) )
     {
       auto cluster = m_cluster_map->findCluster( cluster_key );
@@ -513,6 +573,7 @@ void TrackEvaluation::evaluate_tracks()
         std::cout << "TrackEvaluation::evaluate_tracks - unable to find cluster for key " << cluster_key << std::endl;
         continue;
       }
+      current_clus++;
       // create new cluster struct
       auto cluster_struct = create_cluster( cluster_key, cluster, track );
       add_cluster_size( cluster_struct, cluster);
@@ -527,6 +588,12 @@ void TrackEvaluation::evaluate_tracks()
       } else {
         add_truth_information( cluster_struct, g4hits );
       }
+
+      //Charles Changes 04.07.23
+
+      const auto layer = cluster_struct.layer;
+      const bool is_tpc( layer >= 7 && layer < 55 );
+      const PHG4TpcCylinderGeom* layergeom = is_tpc ? m_tpc_geom_container->GetLayerCellGeom(layer):nullptr;
 
       // find track state that is the closest to cluster
       /* this assumes that both clusters and states are sorted along r */
@@ -545,15 +612,52 @@ void TrackEvaluation::evaluate_tracks()
       // store track state in cluster struct
       if( is_micromegas )
       {
+        std::cout<<"Is Micromegas , Charles 03.21.23"<<std::endl;
         const int tileid = MicromegasDefs::getTileId(cluster_key);
         add_trk_information_micromegas( cluster_struct, tileid, state_iter->second );
       } else {
+        std::cout<<"Is NOT Micromegas , Charles 03.21.23"<<std::endl;
         add_trk_information( cluster_struct, state_iter->second );
       }
 
       // add to track
       track_struct.clusters.push_back( cluster_struct );
+
+      //Charles Changes 04.07.23 ------------
+      std::cout<<"Cluster #: "<<current_clus<<" Cluster x: "<<cluster_struct.x<<" Cluster y: "<<cluster_struct.y<<" Cluster z: "<<cluster_struct.z<<std::endl;
+      std::cout<<"Cluster #: "<<current_clus<<" Cluster r: "<<cluster_struct.r<<std::endl;
+      std::cout<<"Cluster #: "<<current_clus<<" Cluster ADC: "<<cluster_struct.adc<<std::endl;
+      
+      displacement.SetX( cluster_struct.x  - clus_coord_prev.X() );
+      displacement.SetY( cluster_struct.y  - clus_coord_prev.Y() );
+      displacement.SetZ( cluster_struct.z  - clus_coord_prev.Z() );
+
+      trackp_curr.SetX(cluster_struct.trk_px);
+      trackp_curr.SetY(cluster_struct.trk_py);
+      trackp_curr.SetZ(cluster_struct.trk_pz);
+
+      dE = cluster_struct.adc; // cluster ADC = proxy for energy emitted
+
+      if (is_tpc) dx = layergeom->get_thickness()*std::sqrt( 1 + square(std::tan(cluster_struct.trk_alpha)) + square(cluster_struct.trk_beta) );
+      else dx = displacement.Mag(); // cm
+
+      if(is_tpc){ 
+        std::cout<<"Cluster #: "<<current_clus<<" dE/dx = "<< dE/dx <<" ,track p = "<<trackp_curr.Mag()<<std::endl;
+        dEdx_vec.push_back(dE/dx);h_diagnostic->Fill(dE,dx,trackp_curr.X(),trackp_curr.Y(),trackp_curr.Z(),layer);
+        h_cluster_field->Fill(cluster_struct.x,cluster_struct.y,cluster_struct.z);
+      }
+
+      clus_coord_prev.SetX(cluster_struct.x);
+      clus_coord_prev.SetY(cluster_struct.y);
+      clus_coord_prev.SetZ(cluster_struct.z);
     }
+
+    if( trackp_curr.Mag() <= 50.0) //only fill for less than 20 GeV, we don't trust weird values ... 
+    {
+      h_dEdx->Fill( truncated_mean( dEdx_vec , 20) ,trackp_curr.X(),trackp_curr.Y(),trackp_curr.Z(), track_struct.is_primary );
+    }
+    dEdx_vec.clear();
+    //----------------------------------------------------
     m_container->addTrack( track_struct );
   }
 }
