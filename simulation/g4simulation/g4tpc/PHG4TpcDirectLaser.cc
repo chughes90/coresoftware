@@ -429,8 +429,8 @@ void PHG4TpcDirectLaser::SetupLasers()
     laser.m_position.RotateZ(laser.m_phi);
 
     // append
-    m_lasers.push_back(laser);  // All lasers
-    //  if(i==0) m_lasers.push_back(laser);//Only laser 1
+    //m_lasers.push_back(laser);  // All lasers
+    if(i==0) m_lasers.push_back(laser);//Only laser 1
     //  if(i==3) m_lasers.push_back(laser);// Laser 4
     // if(i<4) m_lasers.push_back(laser);//Lasers 1, 2, 3, 4
   }

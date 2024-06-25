@@ -29,8 +29,13 @@
 #include <TH3.h>
 #include <TVector3.h>
 #include <TNtuple.h>
+#include <TSystem.h>
+#include <TF1.h>
+#include <TCanvas.h>
 
 #include <cassert>
+#include <cmath>
+#include <iostream>
 
 namespace
 {
@@ -55,6 +60,7 @@ namespace
     inline constexpr T get_r( const T& x, const T& y ) { return std::sqrt( square(x) + square(y) ); }
 
   // calculate intersection between line and circle
+/*
   std::pair<double, double> line_circle_intersection( const TVector3& p, const TVector3& d, double radius )
   {
     std::pair<double,double> ret = std::make_pair(-1, -1);
@@ -73,17 +79,17 @@ namespace
 
     return ret;
 
-    /*
-    if( tup > 0 && tup < tdn) 
-      return tup;
-    if(tdn > 0 && tdn < tup)
-       return tdn;
+    //
+    //if( tup > 0 && tup < tdn) 
+    //  return tup;
+    //if(tdn > 0 && tdn < tup)
+    //   return tdn;
 
     // no valid extrapolation
-    return -1;
-    */
+    //return -1;
+    //
   }
-    
+   */ 
   /// TVector3 stream
   inline std::ostream& operator << (std::ostream& out, const TVector3& vector )
   {
@@ -131,6 +137,7 @@ int TpcDirectLaserReconstruction::Init(PHCompositeNode*)
   m_matched_hits = 0;
   m_accepted_clusters = 0;
   
+  std::cout<<"in Init, m_save histograms = "<<m_savehistograms<<std::endl;
   if( m_savehistograms ) create_histograms();
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -189,9 +196,17 @@ int TpcDirectLaserReconstruction::End(PHCompositeNode* )
     m_histogramfile->cd();
     //for(const auto& o:std::initializer_list<TObject*>({ h_dca_layer, h_deltarphi_layer_south,h_deltarphi_layer_north, h_deltaz_layer, h_deltar_r,h_deltheta_delphi,h_deltheta_delphi_1,h_deltheta_delphi_2,h_deltheta_delphi_3,h_deltheta_delphi_4,h_deltheta_delphi_5,h_deltheta_delphi_6,h_deltheta_delphi_7,h_deltheta_delphi_8, h_entries,h_relangle_lasrangle,h_relangle_theta_lasrangle,h_relangle_phi_lasrangle,h_GEMs_hit,h_layers_hit,h_xy,h_xz,h_xy_pca,h_xz_pca,h_dca_path,h_zr,h_zr_pca, h_dz_z }))
 
-    for(const auto& o:std::initializer_list<TObject*>({ h_dca_layer, h_deltarphi_layer_south,h_deltarphi_layer_north, h_deltaz_layer, h_deltar_r,h_deltheta_delphi,h_deltheta_delphi_1,h_deltheta_delphi_2,h_deltheta_delphi_3,h_deltheta_delphi_4,h_deltheta_delphi_5,h_deltheta_delphi_6,h_deltheta_delphi_7,h_deltheta_delphi_8, h_entries,h_hits,h_hits_reco,h_adc,h_adc_reco,h_adc_sum,h_adc_sum_reco,h_adc_sum_ratio,h_adc_sum_ratio_true,h_adc_vs_DCA_true,h_adc_sum_ratio_lasrangle,h_num_sum,h_num_sum_reco,h_num_sum_ratio,
-h_num_sum_ratio_true,h_adc_sum_ratio_true,h_adc_sum_ratio,h_num_sum_ratio_lasrangle,h_bright_hits_laser1,h_bright_hits_laser2,h_bright_hits_laser3,h_bright_hits_laser4,h_relangle_lasrangle,
-h_relangle_theta_lasrangle,h_relangle_phi_lasrangle,h_GEMs_hit,h_layers_hit,h_xy,h_xz,h_xy_pca,h_xz_pca,h_dca_path,h_zr,h_zr_pca, h_dz_z }))
+    //for(const auto& o:std::initializer_list<TObject*>({ h_dca_layer, h_deltarphi_layer_south,h_deltarphi_layer_north, h_deltaz_layer, h_deltar_r,h_deltheta_delphi,h_deltheta_delphi_1,h_deltheta_delphi_2,h_deltheta_delphi_3,h_deltheta_delphi_4,h_deltheta_delphi_5,h_deltheta_delphi_6,h_deltheta_delphi_7,h_deltheta_delphi_8, h_entries,h_hits,h_hits_reco,h_adc,h_adc_reco,h_adc_sum,h_adc_sum_reco,h_adc_sum_ratio,h_adc_sum_ratio_true,h_adc_vs_DCA_true,h_adc_sum_ratio_lasrangle,h_num_sum,h_num_sum_reco,h_num_sum_ratio, h_num_sum_ratio_true,h_adc_sum_ratio_true,h_adc_sum_ratio,h_num_sum_ratio_lasrangle,h_sum_ADC_Nhits_ratio_lasrangle_DCA_true,h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco,h_bright_hits_laser1,h_bright_hits_laser2,h_bright_hits_laser3,h_bright_hits_laser4,h_relangle_lasrangle, h_relangle_theta_lasrangle,h_relangle_phi_lasrangle,h_GEMs_hit,h_layers_hit,h_xy,h_xz,h_xy_pca,h_xz_pca,h_dca_path,h_zr,h_zr_pca, h_dz_z }))
+
+    //more recent 02/05/24 -- only want big distortions object
+    //for(const auto& o:std::initializer_list<TObject*>({ h_clusters_distortions }))
+
+    // most recent 01/31/24
+    //for(const auto& o:std::initializer_list<TObject*>({ h_relangle_theta_lasrangle,h_relangle_phi_lasrangle, h_relangle_lasrangle, h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco,h_sum_ADC_Nhits_ratio_lasrangle_DCA_true, h_adc_sum_ratio_lasrangle, h_num_sum_ratio_lasrangle, h_xy,h_xz,h_xy_pca,h_xz_pca,h_dca_path,h_zr,h_zr_pca, h_deltar_r, h_dz_z, h_deltarphi_layer_north, h_deltarphi_layer_south, h_deltaz_layer }))
+
+    //for(const auto& o:std::initializer_list<TObject*>({ h_bright_hits_laser1, h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco, h_adc_sum_ratio_lasrangle, h_relangle_theta_lasrangle,h_relangle_phi_lasrangle, h_assoc_hits, h_clusters_distortions }))
+
+    for(const auto& o:std::initializer_list<TObject*>({ h_bright_hits_laser1, h_clusters_distortions }))
 
     { if( o ) o->Write(); }
     m_histogramfile->Close();
@@ -221,7 +236,7 @@ void TpcDirectLaserReconstruction::SetDefaultParameters()
 {
 
   // DCA cut, to decide whether a cluster should be associated to a given laser track or not (set to 5 - Charles 10/24/23)
-  set_default_double_param( "directlaser_max_dca", 1.0 );
+  set_default_double_param( "directlaser_max_dca", 20.0 );
 
   
 //   // residual cuts, used to decide if a given cluster is used to fill SC reconstruction matrices
@@ -281,6 +296,7 @@ void TpcDirectLaserReconstruction::create_histograms()
   h_zr->GetYaxis()->SetTitle("rad");
   h_zr_pca = new TH2F("h_zr_pca"," z vs r pca", 440,-110,110,1000,28,80);
   h_dz_z = new TH2F("h_dz_z"," dz vs z", 440,-110,110, 1000, -20, 20);
+  h_clusters_distortions = new TNtuple("clusters_distortions","clusters_distortions","r_clus:phi_clus:z_clus:adc_clus:r_truth_track_proj:phi_truth_track_proj:z_truth_track_proj:dr:drphi:dphi:dz:theta_trk:phi_trk");
 
   h_hits = new TNtuple("hits","raw hits","x:y:z:adc");
   h_hits_reco = new TNtuple("hits_reco","raw hits","x:y:z:adc");
@@ -327,12 +343,18 @@ void TpcDirectLaserReconstruction::create_histograms()
   h_num_sum_ratio_lasrangle->SetXTitle("#theta_{laser} (deg.)");
   h_num_sum_ratio_lasrangle->SetYTitle("#phi_{laser} (deg.)");
 
-  h_bright_hits_laser1 = new TNtuple("bright_hits_laser1","bright hits relative to laser 1","x:y:z:deltheta:delphi");
+  //h_sum_ADC_Nhits_ratio_lasrangle_DCA_true = new TNtuple("sum_ADC_Nhits_ratio_lasrangle_DCA_true","Ntuple of #Sigma(ADC) and N_{hits} ratios for MCTRUTH w/ DCA cut to MCTRUTH ALL","ratio_sum_ADC:ratio_sum_N_hits:DCA:theta_lasr:phi_lasr");
+  //h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco = new TNtuple("sum_ADC_Nhits_ratio_lasrangle_DCA_reco","Ntuple of #Sigma(ADC) and N_{hits} ratios for HTRECO w/ DCA cut to MCTRUTH ALL","ratio_sum_ADC:ratio_sum_N_hits:DCA:theta_lasr:phi_lasr");
+
+  h_sum_ADC_Nhits_ratio_lasrangle_DCA_true = new TNtuple("sum_ADC_Nhits_ratio_lasrangle_DCA_true","Ntuple of #Sigma(ADC) and N_{hits} ratios for MCTRUTH w/ DCA cut to MCTRUTH ALL","ratio_sum_ADC:ratio_sum_N_hits:DCA:theta_lasr:phi_lasr:trk_id");
+  h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco = new TNtuple("sum_ADC_Nhits_ratio_lasrangle_DCA_reco","Ntuple of #Sigma(ADC) and N_{hits} ratios for HTRECO w/ DCA cut to MCTRUTH ALL","ratio_sum_ADC:ratio_sum_N_hits:DCA:theta_lasr:phi_lasr:trk_id:theta_reco:phi_reco");
+
+  h_bright_hits_laser1 = new TNtuple("bright_hits_laser1","bright hits relative to laser 1","x:y:z:deltheta:delphi:theta_lasr:phi_lasr:trk_id:theta_reco:phi_reco:layer_xing_angle:radial_xing_angle");
   h_bright_hits_laser2 = new TNtuple("bright_hits_laser2","bright hits relative to laser 2","x:y:z:deltheta:delphi");
   h_bright_hits_laser3 = new TNtuple("bright_hits_laser3","bright hits relative to laser 3","x:y:z:deltheta:delphi");
   h_bright_hits_laser4 = new TNtuple("bright_hits_laser4","bright hits relative to laser 4","x:y:z:deltheta:delphi");
 
-  //h_assoc_hits = new TNtuple("assoc_hits","hits associated with tracks (dca cut)","x:y:z");
+  h_assoc_hits = new TNtuple("assoc_hits","hits associated with tracks","x:y:z:adc");
   //h_clusters = new TNtuple("clusters","associated clusters","x:y:z");
   //h_origins = new TNtuple("origins","track origins","x:y:z");
 
@@ -353,35 +375,35 @@ void TpcDirectLaserReconstruction::create_histograms()
   h_deltheta_delphi->SetXTitle("#Delta#theta");
   h_deltheta_delphi->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_1 = new TH2F("deltheta_delphi_1","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 1 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_1 = new TH2F("deltheta_delphi_1","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 1 only", 800, -0.5,399.5,800,-0.5,399.5);
   h_deltheta_delphi_1->SetXTitle("#Delta#theta");
   h_deltheta_delphi_1->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_2 = new TH2F("deltheta_delphi_2","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 2 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_2 = new TH2F("deltheta_delphi_2","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 2 only", 400, -0.5,399.5,400,-0.5,399.5);
   h_deltheta_delphi_2->SetXTitle("#Delta#theta");
   h_deltheta_delphi_2->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_3 = new TH2F("deltheta_delphi_3","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 3 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_3 = new TH2F("deltheta_delphi_3","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 3 only", 400, -0.5,399.5,400,-0.5,399.5);
   h_deltheta_delphi_3->SetXTitle("#Delta#theta");
   h_deltheta_delphi_3->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_4 = new TH2F("deltheta_delphi_4","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 4 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_4 = new TH2F("deltheta_delphi_4","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 4 only", 400, -0.5,399.5,400,-0.5,399.5);
   h_deltheta_delphi_4->SetXTitle("#Delta#theta");
   h_deltheta_delphi_4->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_5 = new TH2F("deltheta_delphi_5","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 5 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_5 = new TH2F("deltheta_delphi_5","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 5 only", 400, -0.5,399.5,400,-0.5,399.5);
   h_deltheta_delphi_5->SetXTitle("#Delta#theta");
   h_deltheta_delphi_5->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_6 = new TH2F("deltheta_delphi_6","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 6 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_6 = new TH2F("deltheta_delphi_6","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 6 only", 400, -0.5,399.5,400,-0.5,399.5);
   h_deltheta_delphi_6->SetXTitle("#Delta#theta");
   h_deltheta_delphi_6->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_7 = new TH2F("deltheta_delphi_7","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 7 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_7 = new TH2F("deltheta_delphi_7","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 7 only", 400, -0.5,399.5,400,-0.5,399.5);
   h_deltheta_delphi_7->SetXTitle("#Delta#theta");
   h_deltheta_delphi_7->SetYTitle("#Delta#phi");
 
-  h_deltheta_delphi_8 = new TH2F("deltheta_delphi_8","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 8 only", 181, -0.5,180.5,361,-0.5,360.5);
+  h_deltheta_delphi_8 = new TH2F("deltheta_delphi_8","#Delta#theta, #Delta#phi for separation b/w TPC volume hits and LASER 8 only", 400, -0.5,399.5,400,-0.5,399.5);
   h_deltheta_delphi_8->SetXTitle("#Delta#theta");
   h_deltheta_delphi_8->SetYTitle("#Delta#phi");
 
@@ -460,7 +482,7 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
   //if( phi_orig < 0 )phi_orig += 2.*M_PI;
 
-  if( track->get_id() > 3 ){ phi_trk = (2 * M_PI) - phi_trk;}
+  if( track->get_id() > 3 ){ phi_trk = (2 * M_PI) - phi_trk;} // if > 3 assumes you have 8 lasers
 
   //if( Verbosity() )
   //{ 
@@ -476,11 +498,40 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
   TrkrHitSetContainer::ConstRange hitsetrange = m_hit_map->getHitSets(TrkrDefs::TrkrId::tpcId);
 
   float max_adc = 0.;
-  float sum_adc_truth=0;
-  float sum_adc_truth_all=0;
 
-  float sum_n_hits_truth=0;
+  float sum_adc_truth_all=0;
   float sum_n_hits_truth_all=0;
+
+  //canonical DCA (20 mm))
+  float sum_adc_truth=0;
+  float sum_n_hits_truth=0;
+
+  //variable DCAs (1,5,10,15,20 mm)
+  //float sum_adc_truth_1=0;
+  float sum_adc_truth_1[8]={0};
+  //float sum_n_hits_truth_1=0;
+  float sum_n_hits_truth_1[8]={0};
+
+  //float sum_adc_truth_5=0;
+  float sum_adc_truth_5[8]={0};
+  //float sum_n_hits_truth_5=0;
+  float sum_n_hits_truth_5[8]={0};
+
+  //float sum_adc_truth_10=0;
+  float sum_adc_truth_10[8]={0};
+  //float sum_n_hits_truth_10=0;
+  float sum_n_hits_truth_10[8]={0};
+
+  //float sum_adc_truth_15=0;
+  float sum_adc_truth_15[8]={0};
+  //float sum_n_hits_truth_15=0;
+  float sum_n_hits_truth_15[8]={0};
+
+  //float sum_adc_truth_20=0;
+  float sum_adc_truth_20[8]={0};
+  //float sum_n_hits_truth_20=0;
+  float sum_n_hits_truth_20[8]={0};
+  //_________________________________
 
   for(auto hitsetitr = hitsetrange.first; hitsetitr != hitsetrange.second; ++hitsetitr)
   {
@@ -504,7 +555,6 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
     for (auto hitr = hitrangei.first; hitr != hitrangei.second; ++hitr)
       {
 	++m_total_hits;
-        sum_n_hits_truth_all++;
 
 	const unsigned short phibin = TpcDefs::getPad(hitr->first);
   const unsigned short zbin = TpcDefs::getTBin(hitr->first);
@@ -519,9 +569,13 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
       
 	const TVector3 global(x,y,z);
 
+        bool sameside = sameSign(global.z(),origin.z());
+
 	float adc = (hitr->second->getAdc()) - m_pedestal;
         float adc_unsub = (hitr->second->getAdc()); 
-        sum_adc_truth_all += adc_unsub;
+ 
+ 
+        if(sameside){sum_adc_truth_all += adc_unsub;sum_n_hits_truth_all++;}
 /*
         if(h_hits && trkid == 0)
           {
@@ -532,7 +586,6 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 	
 	// calculate dca
 	// origin is track origin, direction is track direction
-        bool sameside = sameSign(global.z(),origin.z());
 	const TVector3 oc( global.x()-origin.x(), global.y()-origin.y(), global.z()-origin.z()  );  // vector from track origin to cluster
 	auto t = direction.Dot( oc )/square( direction.Mag() );
 	auto om = direction*t;     // vector from track origin to PCA
@@ -604,24 +657,42 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
           {
             //std::cout<<"Trk ID = "<<trkid<<std::endl; 
             h_deltheta_delphi_1->Fill(deltheta, delphi) ;
-/*
+
             //if( h_bright_hits && deltheta > 80 && deltheta < 95 && delphi > 130 && delphi < 150)
             //filling bright_hits for theta = 75, phi = 80 (simple debugging only - to be removed)
+
             if( h_bright_hits_laser1 )
             {   
-              h_bright_hits_laser1->Fill(x,y,z,deltheta,delphi);
+              h_bright_hits_laser1->Fill(x,y,z,deltheta,delphi,theta_trk*(180./M_PI),phi_trk*(180./M_PI));
             } 
-*/
+
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[0]++;sum_adc_truth_1[0] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[0]++;sum_adc_truth_5[0] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[0]++;sum_adc_truth_10[0] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[0]++;sum_adc_truth_15[0] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[0]++;sum_adc_truth_20[0] += adc_unsub;}
+
           }
           if(trkid == 1) //only fill for 1 laser !!!
           {
             h_deltheta_delphi_2->Fill(deltheta, delphi) ;
+
 /*
             if( h_bright_hits_laser2 )
             {   
               h_bright_hits_laser2->Fill(x,y,z,deltheta,delphi);
             } 
 */
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[1]++;sum_adc_truth_1[1] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[1]++;sum_adc_truth_5[1] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[1]++;sum_adc_truth_10[1] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[1]++;sum_adc_truth_15[1] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[1]++;sum_adc_truth_20[1] += adc_unsub;}
+
           }
           if(trkid == 2) //only fill for 1 laser !!!
           {
@@ -632,6 +703,14 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
               h_bright_hits_laser3->Fill(x,y,z,deltheta,delphi);
             } 
 */
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[2]++;sum_adc_truth_1[2] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[2]++;sum_adc_truth_5[2] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[2]++;sum_adc_truth_10[2] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[2]++;sum_adc_truth_15[2] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[2]++;sum_adc_truth_20[2] += adc_unsub;}
+
           }
           if(trkid == 3) //only fill for 1 laser !!!
           {
@@ -642,26 +721,74 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
               h_bright_hits_laser4->Fill(x,y,z,deltheta,delphi);
             } 
 */
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[3]++;sum_adc_truth_1[3] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[3]++;sum_adc_truth_5[3] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[3]++;sum_adc_truth_10[3] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[3]++;sum_adc_truth_15[3] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[3]++;sum_adc_truth_20[3] += adc_unsub;}
           }
           if(trkid == 4) //only fill for 1 laser !!!
           {
+
             h_deltheta_delphi_5->Fill(deltheta, delphi) ;
+
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[4]++;sum_adc_truth_1[4] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[4]++;sum_adc_truth_5[4] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[4]++;sum_adc_truth_10[4] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[4]++;sum_adc_truth_15[4] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[4]++;sum_adc_truth_20[4] += adc_unsub;}
           }
           if(trkid == 5) //only fill for 1 laser !!!
           {
             h_deltheta_delphi_6->Fill(deltheta, delphi) ;
+
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[5]++;sum_adc_truth_1[5] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[5]++;sum_adc_truth_5[5] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[5]++;sum_adc_truth_10[5] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[5]++;sum_adc_truth_15[5] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[5]++;sum_adc_truth_20[5] += adc_unsub;}
           }
           if(trkid == 6) //only fill for 1 laser !!!
           {
             h_deltheta_delphi_7->Fill(deltheta, delphi) ;
+
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[6]++;sum_adc_truth_1[6] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[6]++;sum_adc_truth_5[6] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[6]++;sum_adc_truth_10[6] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[6]++;sum_adc_truth_15[6] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[6]++;sum_adc_truth_20[6] += adc_unsub;}
           }
           if(trkid == 7) //only fill for 1 laser !!!
           {
             h_deltheta_delphi_8->Fill(deltheta, delphi) ;
+
+             //checking out multiple DCAs at time - Charles 1.08.24
+
+            if(sameside && dca <= 1){sum_n_hits_truth_1[7]++;sum_adc_truth_1[7] += adc_unsub;}
+            if(sameside && dca <= 5){sum_n_hits_truth_5[7]++;sum_adc_truth_5[7] += adc_unsub;}
+            if(sameside && dca <= 10){sum_n_hits_truth_10[7]++;sum_adc_truth_10[7] += adc_unsub;}
+            if(sameside && dca <= 15){sum_n_hits_truth_15[7]++;sum_adc_truth_15[7] += adc_unsub;}
+            if(sameside && dca <= 20){sum_n_hits_truth_20[7]++;sum_adc_truth_20[7] += adc_unsub;}
           }
 
         }
 
+        //checking out multiple DCAs at time - Charles 11.13.23
+/*
+        if(sameside && dca <= 1){sum_n_hits_truth_1++;sum_adc_truth_1 += adc_unsub;}
+        if(sameside && dca <= 5){sum_n_hits_truth_5++;sum_adc_truth_5 += adc_unsub;}
+        if(sameside && dca <= 10){sum_n_hits_truth_10++;sum_adc_truth_10 += adc_unsub;}
+        if(sameside && dca <= 15){sum_n_hits_truth_15++;sum_adc_truth_15 += adc_unsub;}
+        if(sameside && dca <= 20){sum_n_hits_truth_20++;sum_adc_truth_20 += adc_unsub;}
+*/
 	// do not associate if dca is too large
 	if( dca > m_max_dca ) continue; 
 
@@ -684,10 +811,11 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
       
         if( z2 > m_zmin || z2 < m_zmax ) GEM_Mod_Arr[locateid-1]++; // the array ath the cluster location - counts the number of clusters in each array, (IFF its in the volume !!!)
 
+// Chales 02/04/24 - WE WANT TO REPLACE THIS WITH THE RECALCULATED DIRECTION FOR TESTING DISTORTIONS CALCULATE IN PRESENCE OF DISTORTIONS
+
 	// bin hits by layer
-	const auto cluspos_pair = std::make_pair(adc, global); 	
-	cluspos_map.insert(std::make_pair(layer, cluspos_pair));	
-	layer_bin_set.insert(layer);
+	if(sameside){const auto cluspos_pair = std::make_pair(adc, global); cluspos_map.insert(std::make_pair(layer, cluspos_pair)); layer_bin_set.insert(layer); }
+
       } //end looping over hits
   } //end looping over hitset
 
@@ -704,8 +832,29 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
     h_num_sum_ratio_true->Fill(sum_n_hits_truth/sum_n_hits_truth_all); //for a hits associated with the same laser fire take the ratio
   }
 
-  int maxbin;
-  int deltheta_max, delphi_max, dummy_z;
+  if(sum_adc_truth_all > 0 && sum_n_hits_truth_all > 0) // you you MUST have hits in this to take ratios, and BOTH this time
+  {
+
+    //checking out multiple DCAs at time - Charles 1.08.24
+    //for( int i=0; i<8; i++){
+
+    //}
+
+    //sum_adc_truth_all , sum_n_hits_truth_all
+
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_true->Fill(sum_adc_truth_1[trkid]/sum_adc_truth_20[trkid],sum_n_hits_truth_1[trkid]/sum_n_hits_truth_20[trkid],1,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid);
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_true->Fill(sum_adc_truth_5[trkid]/sum_adc_truth_20[trkid],sum_n_hits_truth_5[trkid]/sum_n_hits_truth_20[trkid],5,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid);
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_true->Fill(sum_adc_truth_10[trkid]/sum_adc_truth_20[trkid],sum_n_hits_truth_10[trkid]/sum_n_hits_truth_20[trkid],10,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid);
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_true->Fill(sum_adc_truth_15[trkid]/sum_adc_truth_20[trkid],sum_n_hits_truth_15[trkid]/sum_n_hits_truth_20[trkid],15,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid);
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_true->Fill(sum_adc_truth_20[trkid]/sum_adc_truth_20[trkid],sum_n_hits_truth_20[trkid]/sum_n_hits_truth_20[trkid],20,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid);
+
+  }
+
+  //Charles comment back in to go back to max of H.T. 01/03/23
+  //int maxbin;
+  //int deltheta_max, delphi_max, dummy_z;
+
+  int deltheta_max, delphi_max;
 
   float theta_reco =0;
   float phi_reco =0;
@@ -718,9 +867,21 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
   if( (trkid == 0 && h_deltheta_delphi_1->GetEntries() > 0) && max_adc > 10)
   {
+/*
+    std::pair<float, float> iter_max = IterativefindMaxCoords(h_deltheta_delphi_1); ////theta is first, phi is second
+
+    std::cout << "Laser # "<<(trkid+1)<<" deltheta itermax: "<< iter_max.first <<", delphi itermax: "<< iter_max.second << std::endl;
+
+    std::pair<float, float> ave_fit = fitGaussianAndGetMean(h_deltheta_delphi_1, iter_max.first, iter_max.second, (theta_trk*(180./M_PI)), (phi_trk*(180./M_PI))); ////theta is first, phi is second   
+
+    std::cout << "Laser # "<<(trkid+1)<<" deltheta ave from gaussian fit: "<< ave_fit.first <<", delphi ave from gaussian fit: "<< ave_fit.second << std::endl;
+
+    deltheta_max = ave_fit.first; 
+    delphi_max = ave_fit.second; 
+*/
     h_deltheta_delphi_1->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_1->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
-
+/*
     maxbin= h_deltheta_delphi_1->GetMaximumBin();
 
     h_deltheta_delphi_1->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -734,13 +895,28 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_1->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_1->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+
+    //trying the mean instad of max just to see what happens Charles 12/15/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_1->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_1->GetMean(2))); // y-axis, round to nearest integer
+
+    //std::cout << "Laser # "<<(trkid+1)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    h_relangle_theta_lasrangle->Fill(theta_trk*(180./M_PI),phi_trk*(180./M_PI),deltheta_max-(theta_trk*(180./M_PI)) );
+    h_relangle_phi_lasrangle->Fill(theta_trk*(180./M_PI),phi_trk*(180./M_PI),delphi_max-(phi_trk*(180./M_PI)) );
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   else if( (trkid == 1 && h_deltheta_delphi_2->GetEntries() > 0) && max_adc > 10 )
   {
     h_deltheta_delphi_2->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_2->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
-
+/*
     maxbin= h_deltheta_delphi_2->GetMaximumBin();
 
     h_deltheta_delphi_2->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -754,6 +930,18 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_2->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_2->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+
+    //trying the mean instad of max just to see what happens Charles 01/03/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_2->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_2->GetMean(2))); // y-axis, round to nearest integer
+
+    std::cout << "Laser # "<<(trkid+1)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   else if( (trkid == 2 && h_deltheta_delphi_3->GetEntries() > 0) && max_adc > 10 )
@@ -761,6 +949,7 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
     h_deltheta_delphi_3->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_3->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
 
+/*
     maxbin= h_deltheta_delphi_3->GetMaximumBin();
 
     h_deltheta_delphi_3->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -774,13 +963,24 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_3->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_3->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+    //trying the mean instad of max just to see what happens Charles 01/03/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_3->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_3->GetMean(2))); // y-axis, round to nearest integer
+
+    std::cout << "Laser # "<<(trkid+1)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   else if( (trkid == 3 && h_deltheta_delphi_4->GetEntries() > 0) && max_adc > 10 )
   {
     h_deltheta_delphi_4->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_4->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
-
+/*
     maxbin= h_deltheta_delphi_4->GetMaximumBin();
 
     h_deltheta_delphi_4->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -794,6 +994,17 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_4->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_4->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+    //trying the mean instad of max just to see what happens Charles 01/03/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_4->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_4->GetMean(2))); // y-axis, round to nearest integer
+
+    std::cout << "Laser # "<<(trkid+1)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   else if( (trkid == 4 && h_deltheta_delphi_5->GetEntries() > 0) && max_adc > 10 )
@@ -801,6 +1012,7 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
     h_deltheta_delphi_5->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_5->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
 
+/*
     maxbin= h_deltheta_delphi_5->GetMaximumBin();
 
     h_deltheta_delphi_5->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -814,6 +1026,17 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_5->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_5->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+    //trying the mean instad of max just to see what happens Charles 01/03/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_5->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_5->GetMean(2))); // y-axis, round to nearest integer
+
+    std::cout << "Laser # "<<(trkid+1)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   else if( (trkid == 5 && h_deltheta_delphi_6->GetEntries() > 0) && max_adc > 10 )
@@ -821,6 +1044,7 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
     h_deltheta_delphi_6->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_6->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
 
+/*
     maxbin= h_deltheta_delphi_6->GetMaximumBin();
 
     h_deltheta_delphi_6->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -834,6 +1058,17 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_6->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_6->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+    //trying the mean instad of max just to see what happens Charles 01/03/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_6->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_6->GetMean(2))); // y-axis, round to nearest integer
+
+    std::cout << "Laser # "<<(trkid+1)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   else if( (trkid == 6 && h_deltheta_delphi_7->GetEntries() > 0) && max_adc > 10 )
@@ -841,6 +1076,7 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
     h_deltheta_delphi_7->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_7->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
 
+/*
     maxbin= h_deltheta_delphi_7->GetMaximumBin();
 
     h_deltheta_delphi_7->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -854,6 +1090,17 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_7->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_7->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+    //trying the mean instad of max just to see what happens Charles 01/03/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_7->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_7->GetMean(2))); // y-axis, round to nearest integer
+
+    std::cout << "Laser # "<<(trkid+1)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   else if( (trkid == 7 && h_deltheta_delphi_8->GetEntries() > 0) && max_adc > 10 )
@@ -861,6 +1108,7 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
     h_deltheta_delphi_8->GetXaxis()->SetRangeUser(-5+(theta_trk*(180./M_PI)),5+(theta_trk*(180./M_PI)));
     h_deltheta_delphi_8->GetYaxis()->SetRangeUser(-5+(phi_trk*(180./M_PI)),5+(phi_trk*(180./M_PI)));
 
+/*
     maxbin= h_deltheta_delphi_8->GetMaximumBin();
 
     h_deltheta_delphi_8->GetBinXYZ(maxbin, deltheta_max, delphi_max, dummy_z);
@@ -874,6 +1122,17 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
     theta_reco = h_deltheta_delphi_8->GetXaxis()->GetBinCenter(deltheta_max) * (M_PI/180); //convert to radians
     phi_reco = h_deltheta_delphi_8->GetYaxis()->GetBinCenter(delphi_max) * (M_PI/180); //convert to radians
+*/
+    //trying the mean instad of max just to see what happens Charles 01/03/23
+    deltheta_max = static_cast<int>(std::round(h_deltheta_delphi_8->GetMean(1))); // x-axis, round to nearest integer
+    delphi_max = static_cast<int>(std::round(h_deltheta_delphi_8->GetMean(2))); // y-axis, round to nearest integer
+
+    std::cout << "Laser # "<<(trkid)<<" naieve deltheta AVE: "<< deltheta_max <<", naieve delphi AVE: "<< delphi_max << std::endl;
+
+    h_relangle_lasrangle->Fill(deltheta_max-(theta_trk*(180./M_PI)),delphi_max-(phi_trk*(180./M_PI)));
+
+    theta_reco = deltheta_max * (M_PI/180); //convert to radians
+    phi_reco = delphi_max * (M_PI/180); //convert to radians
   }
 
   // Determining Vector for reconstructed laser direction
@@ -911,8 +1170,35 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
   //now loop over hits AGAIN and get ADC spectrum
 
+  //canonical DCA (20 mm))
   float sum_adc_reco=0;
   float sum_n_hits_reco=0;
+
+  //variable DCAs (1,5,10,15,20 mm)
+  //float sum_adc_reco_1=0;
+  float sum_adc_reco_1[8]={0};
+  //float sum_n_hits_reco_1=0;
+  float sum_n_hits_reco_1[8]={0};
+
+  //float sum_adc_reco_5=0;
+  float sum_adc_reco_5[8]={0};
+  //float sum_n_hits_reco_5=0;
+  float sum_n_hits_reco_5[8]={0};
+
+  //float sum_adc_reco_10=0;
+  float sum_adc_reco_10[8]={0};
+  //float sum_n_hits_reco_10=0;
+  float sum_n_hits_reco_10[8]={0};
+
+  //float sum_adc_reco_15=0;
+  float sum_adc_reco_15[8]={0};
+  //float sum_n_hits_reco_15=0;
+  float sum_n_hits_reco_15[8]={0};
+
+  //float sum_adc_reco_20=0;
+  float sum_adc_reco_20[8]={0};
+  //float sum_n_hits_reco_20=0;
+  float sum_n_hits_reco_20[8]={0};
 
   for(auto hitsetitr = hitsetrange.first; hitsetitr != hitsetrange.second; ++hitsetitr)
   {
@@ -961,6 +1247,55 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 	auto om_2 = dir*t_2;     // vector from track origin to PCA
 	const auto dca_2 = (oc_2-om_2).Mag();
 
+        // calculate layer x-ing angle for a given hit - do it from laser perspective
+        //float layer_xing_angle = TMath::ATan2(TMath::Abs(global_2.y()-origin.y()),TMath::Abs(global_2.z()-origin.z()));
+
+        // calculte radial x-ing angle for a given hit 
+        //float radial_xing_angle = CalculateRadialXingAngle(x_2,y_2,origin.x(),origin.y());
+
+        //checking out multiple DCAs at time - Charles 11.13.23
+/*
+        if(sameside_reco && dca_2 <= 1){sum_n_hits_reco_1++;sum_adc_reco_1 += adc_2_unsub;}
+        if(sameside_reco && dca_2 <= 5){sum_n_hits_reco_5++;sum_adc_reco_5 += adc_2_unsub;}
+        if(sameside_reco && dca_2 <= 10){sum_n_hits_reco_10++;sum_adc_reco_10 += adc_2_unsub;}
+        if(sameside_reco && dca_2 <= 15){sum_n_hits_reco_15++;sum_adc_reco_15 += adc_2_unsub;}
+        if(sameside_reco && dca_2 <= 20){sum_n_hits_reco_20++;sum_adc_reco_20 += adc_2_unsub;}
+
+*/
+
+        TVector3 oc2_2( global_2.x()-origin.x(), global_2.y()-origin.y(), global_2.z()-origin.z()  );  // vector from track origin to cluster
+        oc2_2.RotateZ(-phi_orig);
+   
+        float deltheta_2 = oc2_2.Theta();
+        float delphi_2 = oc2_2.Phi();
+
+        if (deltheta_2 > M_PI/2.) deltheta_2 = M_PI - deltheta_2;
+
+        while( delphi_2 < m_phimin ) delphi_2 += 2.*M_PI; 
+        while( delphi_2 >= m_phimax ) delphi_2 -= 2.*M_PI; 
+
+        if( track->get_id() > 3 ){ delphi_2 = (2 * M_PI) - delphi_2;}
+
+        deltheta_2 *= (180./M_PI);
+        delphi_2   *= (180./M_PI);
+
+        for(unsigned int i=0;i<8;i++)
+        {
+          if(track->get_id() == i)
+          {
+
+            if(sameside_reco && dca_2 <= 1){sum_n_hits_reco_1[i]++;sum_adc_reco_1[i] += adc_2_unsub;}
+            if(sameside_reco && dca_2 <= 5){sum_n_hits_reco_5[i]++;sum_adc_reco_5[i] += adc_2_unsub;}
+            if(sameside_reco && dca_2 <= 10){sum_n_hits_reco_10[i]++;sum_adc_reco_10[i] += adc_2_unsub;}
+            if(sameside_reco && dca_2 <= 15){sum_n_hits_reco_15[i]++;sum_adc_reco_15[i] += adc_2_unsub;}
+            if(sameside_reco && dca_2 <= 20){sum_n_hits_reco_20[i]++;sum_adc_reco_20[i] += adc_2_unsub;}
+
+            //h_bright_hits_laser1->Fill(x_2,y_2,z_2,deltheta_2,delphi_2,theta_trk*(180./M_PI),phi_trk*(180./M_PI),i,theta_reco*(180./M_PI),phi_reco*(180./M_PI),layer_xing_angle*(180./M_PI),radial_xing_angle*(180./M_PI));
+
+          }
+        }
+
+
         if( dca_2 > m_max_dca ) continue; // do not record if hit is outside DCA, proceed to next hit
         if(sameside_reco){sum_n_hits_reco++;h_adc_reco->Fill(adc_2);sum_adc_reco += adc_2_unsub;} //increment reco but only if hits are on the same side
 /*
@@ -969,28 +1304,56 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
             h_hits_reco->Fill(x_2,y_2,z_2,adc_2);
         }
 */
+
+	// bin hits by layer - CHARLES 02/04/24 - we are doing this in the tube pionted in reconstruction direction which is REQUIRED when distortions are on
+	//if(sameside_reco){const auto cluspos_pair = std::make_pair(adc_2, global_2); cluspos_map.insert(std::make_pair(layer_2, cluspos_pair));	layer_bin_set.insert(layer_2); }
+
     } //end loop over hits again
   } //end loop over hitset again
 
   h_adc_sum_reco->Fill(sum_adc_reco);
   h_num_sum_reco->Fill(sum_n_hits_reco);
 
-  if(sum_adc_truth > 0) // you MUST have hits in this to take ratio
+  if(sum_adc_truth_all > 0) // you MUST have hits in this to take ratio
   {
-    h_adc_sum_ratio->Fill(sum_adc_reco/sum_adc_truth); //for a hits associated with the same laser fire take the ratio
+    h_adc_sum_ratio->Fill(sum_adc_reco/sum_adc_truth_all); //for a hits associated with the same laser fire take the ratio
     if( trkid == 0 ) //for laser 1 only, show me WHERE we are messing up reconstruction
     {
-      h_adc_sum_ratio_lasrangle->Fill(theta_trk*(180./M_PI),phi_trk*(180./M_PI),(sum_adc_reco/sum_adc_truth));
+      h_adc_sum_ratio_lasrangle->Fill(theta_trk*(180./M_PI),phi_trk*(180./M_PI),(sum_adc_reco/sum_adc_truth_all));
     }
   }
 
-  if(sum_n_hits_truth > 0) // you MUST have hits in this to take ratio
+  if(sum_n_hits_truth_all > 0) // you MUST have hits in this to take ratio
   {
-    h_num_sum_ratio->Fill(sum_n_hits_reco/sum_n_hits_truth); //for a hits associated with the same laser fire take the ratio
+    h_num_sum_ratio->Fill(sum_n_hits_reco/sum_n_hits_truth_all); //for a hits associated with the same laser fire take the ratio
     if( trkid == 0 ) //for laser 1 only, show me WHERE we are messing up reconstruction
     {
-      h_num_sum_ratio_lasrangle->Fill(theta_trk*(180./M_PI),phi_trk*(180./M_PI),(sum_n_hits_reco/sum_n_hits_truth));
+      h_num_sum_ratio_lasrangle->Fill(theta_trk*(180./M_PI),phi_trk*(180./M_PI),(sum_n_hits_reco/sum_n_hits_truth_all));
     }
+  }
+
+  if(sum_adc_truth_all > 0 && sum_n_hits_truth_all > 0) // you you MUST have hits in this to take ratios, and BOTH this time
+  {
+/*
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_1/sum_adc_truth_all,sum_n_hits_reco_1/sum_n_hits_truth_all,1,theta_trk*(180./M_PI),phi_trk*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_5/sum_adc_truth_all,sum_n_hits_reco_5/sum_n_hits_truth_all,5,theta_trk*(180./M_PI),phi_trk*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_10/sum_adc_truth_all,sum_n_hits_reco_10/sum_n_hits_truth_all,10,theta_trk*(180./M_PI),phi_trk*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_15/sum_adc_truth_all,sum_n_hits_reco_15/sum_n_hits_truth_all,15,theta_trk*(180./M_PI),phi_trk*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_20/sum_adc_truth_all,sum_n_hits_reco_20/sum_n_hits_truth_all,20,theta_trk*(180./M_PI),phi_trk*(180./M_PI));
+*/
+    //checking out multiple DCAs at time - Charles 1.08.24
+    //for( int i=0; i<8; i++){
+
+    //}
+
+    //sum_adc_truth_all , sum_n_hits_truth_all
+
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_1[trkid]/sum_adc_truth_20[trkid],sum_n_hits_reco_1[trkid]/sum_n_hits_truth_20[trkid],1,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid,theta_reco*(180./M_PI),phi_reco*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_5[trkid]/sum_adc_truth_20[trkid],sum_n_hits_reco_5[trkid]/sum_n_hits_truth_20[trkid],5,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid,theta_reco*(180./M_PI),phi_reco*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_10[trkid]/sum_adc_truth_20[trkid],sum_n_hits_reco_10[trkid]/sum_n_hits_truth_20[trkid],10,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid,theta_reco*(180./M_PI),phi_reco*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_15[trkid]/sum_adc_truth_20[trkid],sum_n_hits_reco_15[trkid]/sum_n_hits_truth_20[trkid],15,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid,theta_reco*(180./M_PI),phi_reco*(180./M_PI));
+    h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco->Fill(sum_adc_reco_20[trkid]/sum_adc_truth_20[trkid],sum_n_hits_reco_20[trkid]/sum_n_hits_truth_20[trkid],20,theta_trk*(180./M_PI),phi_trk*(180./M_PI),trkid,theta_reco*(180./M_PI),phi_reco*(180./M_PI));
+
   }
 
   for(int GEMS_iter = 0; GEMS_iter < 72; GEMS_iter++)
@@ -1017,6 +1380,81 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
   // we have all of the residuals for this track added to the map, binned by layer
   // now we calculate the centroid of the clusters in each bin
 
+  for(auto layer : layer_bin_set)
+    {
+/*
+      // get position of layer center on track
+      auto om = direction*t;      
+
+      // get vector pointing to the track intersection with layer center
+      const auto projection = origin + om;
+      
+      double zmax = -999.;
+      double zmin = 999.;
+*/      
+      auto bin_residual = cluspos_map.equal_range(layer);
+
+      //TVector3 clus_centroid(0,0,0);
+      //float wt = 0;
+      for( auto mit = bin_residual.first; mit != bin_residual.second; ++mit)
+	{
+	  float adc =  (float) mit->second.first;
+	  TVector3 cluspos =mit->second.second;
+/*
+          if(h_assoc_hits){
+            h_assoc_hits->Fill(cluspos.x(),cluspos.y(),cluspos.z(),adc);
+          }
+*/
+          //per Ross' instructions we set z_true = z_reco, its not necessarily true but good to a 1st approximation
+          float z_true = cluspos.z();
+          
+          std::pair<float, float> xy_true = parameterizeLine(theta_trk, phi_trk, origin.x(), origin.y(), origin.z(), z_true);
+          float x_true = xy_true.first;
+          float y_true = xy_true.second;
+          float r_true = get_r(x_true,y_true);
+          // we don't want to go out of bounds - because of wonky z persistance beyond point where laser strikes IFC and OFC
+          if( r_true < 31.105 ){ r_true = 31.105;}
+          if( r_true > 75.911 ){ r_true = 75.911;}
+          float phi_true = std::atan2(y_true,x_true);
+
+          //now we can calculate distortions relative to our reference line
+          float r_reco = get_r(cluspos.x(),cluspos.y());
+          float phi_reco_clus = std::atan2(cluspos.y(),cluspos.x());
+          
+          float dr = r_reco - r_true;
+          float dp = delta_phi(phi_reco_clus-phi_true);
+          float drp = r_reco*delta_phi(phi_reco_clus-phi_true);
+          float dz = cluspos.z() - z_true; // 0 by definition
+
+         
+          if( (r_reco > 31.105 && r_reco < 75.911) && (TMath::Abs(cluspos.z()) < 105.5) )
+          {
+            h_clusters_distortions->Fill(r_reco,phi_reco_clus,cluspos.z(),adc,r_true,phi_true,z_true,dr,drp,dp,dz,theta_trk, phi_trk);
+
+          }
+/*
+	  if(fabs(cluspos.z() - projection.z()) > m_max_zrange) continue;  // to reject clusters from possible second traverse of layer
+ 
+	  if(Verbosity() > 2)
+	    {
+	      std::cout << "  layer " << layer << " adc " << adc << std::endl;
+	      std::cout << "            cluspos " << cluspos.x() << "  " << cluspos.y() << "  " << cluspos.z() 
+			<< " clus radius " << sqrt(square(cluspos.x()) + square(cluspos.y())) << std::endl;
+	    }
+
+	  clus_centroid += cluspos * adc;
+	  wt += adc;
+
+	  if(cluspos.z() < zmin) zmin = cluspos.z();
+	  if(cluspos.z() > zmax) zmax = cluspos.z();
+*/
+	}
+
+
+    }
+
+
+/*
   for(auto layer : layer_bin_set)
     {
       PHG4TpcCylinderGeom *layergeom = m_geom_container->GetLayerCellGeom(layer);
@@ -1150,17 +1588,17 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
       const auto cluster_z = clus_centroid.z();
 
       // We will bring this back when we fix clustering !!
-      /*
-      float r2 = cluster_r;
-      float phi2 = cluster_phi;
-      float z2 = cluster_z;
-      while( phi2 < m_phimin ) phi2 += 2.*M_PI; 
-      while( phi2 >= m_phimax ) phi2 -= 2.*M_PI; 
+      //__________________________________________________________________________________________________________________________
+      //float r2 = cluster_r;
+      //float phi2 = cluster_phi;
+      //float z2 = cluster_z;
+      //while( phi2 < m_phimin ) phi2 += 2.*M_PI; 
+      //while( phi2 >= m_phimax ) phi2 -= 2.*M_PI; 
 
-      const int locateid = Locate(r2 , phi2 , z2); //find where the cluster is 
+      //const int locateid = Locate(r2 , phi2 , z2); //find where the cluster is 
       
-      if( z2 > m_zmin || z2 < m_zmax ) GEM_Mod_Arr[locateid-1]++; // the array ath the cluster location - counts the number of clusters in each array, (IFF its in the volume !!!)
-      */
+      //if( z2 > m_zmin || z2 < m_zmax ) GEM_Mod_Arr[locateid-1]++; // the array ath the cluster location - counts the number of clusters in each array, (IFF its in the volume !!!)
+      //__________________________________________________________________________________________________________________________
 
       // cluster errors
       const auto cluster_rphi_error = 0.015;
@@ -1234,6 +1672,9 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 	  if(h_zr_pca) h_zr_pca->Fill(projection.z(), r);
 	  if(h_dz_z)h_dz_z->Fill(projection.z(), clus_centroid.z()- projection.z());
           //if(h_clusters)h_clusters->Fill(clus_centroid.x(),clus_centroid.y(),clus_centroid.z());
+
+          h_clusters_distortions->Fill(cluster_r,cluster_phi,cluster_z,r,track_phi,track_z,dr,drp,dz);
+
 	}
       
       //       // check against limits
@@ -1295,19 +1736,21 @@ void TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
       
       // increment number of accepted clusters
       ++m_accepted_clusters;      
-    }
+    } //end for(auto layer : layer_bin_set) (looping over layers)
+
 
 // We will eventually bring this back when we fix clustering
-/*
-  for(int GEMS_iter = 0; GEMS_iter < 72; GEMS_iter++)
-  {
-    if(GEM_Mod_Arr[GEMS_iter] > 0){  //laser 0
-      h_GEMs_hit->Fill(trkid + 0.5);
-    }
-  }
 */
-
-}
+//*//__________________________________________________________________________________________________________________________
+//  for(int GEMS_iter = 0; GEMS_iter < 72; GEMS_iter++)
+//  {
+//    if(GEM_Mod_Arr[GEMS_iter] > 0){  //laser 0
+//      h_GEMs_hit->Fill(trkid + 0.5);
+//    }
+//  }
+//__________________________________________________________________________________________________________________________
+//*/
+} //end TpcDirectLaserReconstruction::process_track( SvtxTrack* track )
 
 
 //_____________________________________________________________________
@@ -1481,3 +1924,341 @@ bool TpcDirectLaserReconstruction::sameSign(float num1, float num2)
     return (num1 >= 0 && num2 >= 0) || (num1 < 0 && num2 < 0);
 }
 
+std::pair<float, float> TpcDirectLaserReconstruction::IterativefindMaxCoords(TH2* hist)
+{
+  //Initial binning, 800 bins: -0.5, 399.5 in THETA (X)
+  //Initial binning, 800 bins: -0.5, 399.5 in PHI (Y)
+
+  // so make it 400 by merging 2 bins into 1
+  //TH2F* primaryhist = (TH2F*)hist->Clone("primaryhist");
+  //primaryhist->Rebin2D(2, 2);
+
+  int binningX = 400, binningY = 400 ; //start by merging 400 bins into 1
+
+  int iter=1;
+/*
+  // Call the pause command  (debug)
+  hist->Draw("colz");
+  std::cout << "Program Is Paused for 1 s\n"<< std::endl; 
+  gSystem->Sleep(10000);
+  std::cout << "Terminated\n";
+*/
+  while (binningX >=2 && binningY >=2) 
+  {
+    // Clone and re-bin the histogram
+    TH2F* clonedHist = (TH2F*)hist->Clone("clonedHist");
+    //if(binningX > 1 && binningY > 1){clonedHist->Rebin2D(binningX, binningY);}
+    clonedHist->Rebin2D(binningX, binningY);
+
+/*
+    // Call the pause command  (debug)
+    clonedHist->Draw("colz");
+    std::cout << "Program Is Paused for 10 s\n"<< std::endl; 
+    gSystem->Sleep(10000);
+    std::cout << "Terminated\n"; 
+*/
+    // Find the maximum bin coordinates
+    int maxBin = clonedHist->GetMaximumBin();
+    int maxX, maxY, maxZ;
+    clonedHist->GetBinXYZ(maxBin, maxX, maxY, maxZ);
+
+    //std::cout<<"ITER: "<<iter<<" deltheta_max = "<<clonedHist->GetXaxis()->GetBinCenter(maxX)<<" delphi_max = "<<clonedHist->GetYaxis()->GetBinCenter(maxY)<<std::endl;
+
+    // Update binning for the next iteration
+    double binWidthX = clonedHist->GetXaxis()->GetBinWidth(1);
+    double binWidthY = clonedHist->GetYaxis()->GetBinWidth(1);
+
+    //std::cout<<"ITER: "<<iter<<" binWidth_theta = "<<binWidthX<<" binWidth_phi = "<<binWidthY<<std::endl;
+
+    if(binWidthX == 1) // when you get to 1, you will terminate
+    {
+      binningX = 1;
+    }
+    if(binWidthX == 2) // when you get to 1, 1 more iteration
+    {
+      binningX = 2; //bin width is now 1
+    }
+    else if(binWidthX == 5) // when you get to 5, you will terminate
+    {
+      binningX = 4; //bin width is now 2
+    }
+    else if(binWidthX == 10) // when you get to 5, don't rebin, 2 is a dummy that will keep things going 2 more iterations
+    {
+      binningX = 10; //bin width is now 5
+    }
+    else if(binWidthX == 25) // when you get to 25 (800/2 = 400, 400/2 = 200, 200/2 = 100, 100/2 = 50, 50/2 = 25 merge 10 into 1 -> 800/10 -> 80
+    {
+      binningX = 20; //bin width will now be 10
+    }
+    else if(binWidthX > 25) //else if > 25, div by 2
+    {
+      binningX /= 2;
+    }
+
+    if(binWidthY == 1) // when you get to 1, you will terminate
+    {
+      binningY = 1;
+    }
+    if(binWidthY == 2) // when you get to 1, 1 more iteration
+    {
+      binningY = 2; //bin width is now 1
+    }
+    else if(binWidthY == 5) // when you get to 5, you will terminate
+    {
+      binningY = 4; //bin width is now 2
+    }
+    else if(binWidthY == 10) // when you get to 5, don't rebin, 2 is a dummy that will keep things going 2 more iterations
+    {
+      binningY = 10; //bin width is now 5
+    }
+    else if(binWidthY == 25) // when you get to 25 (800/2 = 400, 400/2 = 200, 200/2 = 100, 100/2 = 50, 50/2 = 25 merge 10 into 1 -> 800/10 -> 80
+    {
+      binningY = 20; //bin width will now be 10
+    }
+    else if(binWidthY > 25) //else if > 25, div by 2
+    {
+      binningY /= 2;
+    }
+
+    float maxX_location = clonedHist->GetXaxis()->GetBinCenter(maxX);
+    float maxY_location = clonedHist->GetYaxis()->GetBinCenter(maxY);
+
+    // Limit the region for the next iteration
+    hist->GetXaxis()->SetRangeUser(maxX_location - binWidthX/2, maxX_location + binWidthX/2);
+    hist->GetYaxis()->SetRangeUser(maxY_location - binWidthY/2, maxY_location + binWidthY/2);
+
+    iter++;
+
+    // Check termination condition
+    if (binningX == 1 && binningY == 1)
+    {
+      delete clonedHist;
+      return std::make_pair(maxX_location, maxY_location); //theta is X, phi is Y
+    }
+
+    delete clonedHist;
+  }
+
+  //delete primaryhist;
+
+  // Return a default pair if the loop doesn't terminate
+  return std::make_pair(-1, -1);
+}
+
+std::pair<float, float> TpcDirectLaserReconstruction::fitGaussianAndGetMean(TH2 *hist,float deltheta_guess,float delphi_guess, float theta_trk, float phi_trk) 
+{
+
+    // Functions to fit and set ranges to fit
+
+    //Skew Gaus
+
+    //TF1 *gaussianFitX = new TF1("gaussianFitX","2.*gaus(x-[3],[0],0,[1])*ROOT::Math::normal_cdf([2]*(x-[3]),1,0)");
+    //TF1 *gaussianFitY = new TF1("gaussianFitY","2.*gaus(x-[3],[0],0,[1])*ROOT::Math::normal_cdf([2]*(x-[3]),1,0)");
+
+    //regular Gaus
+
+    TF1 *gaussianFitX = new TF1("gaussianFitX","gaus");
+    TF1 *gaussianFitY = new TF1("gaussianFitY","gaus");
+
+    // Clone the hist and rebin
+    TH2F* clonedHist = (TH2F*)hist->Clone("clonedHist");
+    clonedHist->Rebin2D(2,2); // 1 deg wide bins
+
+    // Get number of bins in x and y
+    int nBinsX = clonedHist->GetNbinsX();
+    int nBinsY = clonedHist->GetNbinsY();
+
+    // Project onto X-axis, set initial guess range, normalize, and re-set range based on average in initial guess range
+    TH1D *projectionX = clonedHist->ProjectionX("projectionX", 1, nBinsX);
+    projectionX->Scale(1/projectionX->GetEntries(),"width");
+    projectionX->GetXaxis()->SetRangeUser(-20+deltheta_guess,20+deltheta_guess); 
+    float deltheta_mean_guess = projectionX->GetMean();
+    //projectionX->GetXaxis()->SetRangeUser(-10+deltheta_mean_guess,10+deltheta_mean_guess); 
+
+    // Project onto Y-axis, set initial guess range, normalize, and re-set range based on average in initial guess range
+    TH1D *projectionY = clonedHist->ProjectionY("projectionY", 1, nBinsY);
+    projectionY->Scale(1/projectionY->GetEntries(),"width");
+    projectionY->GetXaxis()->SetRangeUser(-20+delphi_guess,20+delphi_guess); 
+    float delphi_mean_guess = projectionY->GetMean();
+    //projectionY->GetXaxis()->SetRangeUser(-10+delphi_mean_guess,10+delphi_mean_guess); 
+
+    // set initial guesses for amplitude, mean, and width
+    // par[0] = amplitude
+    // par[1] = mean
+    // par[2] = width
+
+    gaussianFitX->SetParameter(0,projectionX->GetMaximum());
+    gaussianFitX->SetParameter(1,projectionX->GetMean());
+    gaussianFitX->SetParameter(2,projectionX->GetRMS());
+
+    gaussianFitY->SetParameter(0,projectionY->GetMaximum());
+    gaussianFitY->SetParameter(1,projectionY->GetMean());
+    gaussianFitY->SetParameter(2,projectionY->GetRMS());
+
+    if(deltheta_mean_guess-5 < 0)
+    {
+      gaussianFitX->SetRange(0,deltheta_mean_guess+5);
+    }
+    else if(deltheta_mean_guess+5 > 90 ) //we should never go beyond theta = 90, no entries there!!!
+    {
+      gaussianFitX->SetRange(deltheta_mean_guess-5,90);
+    }
+    else
+    {
+      gaussianFitX->SetRange(deltheta_mean_guess-5,deltheta_mean_guess+5);
+    }
+
+    if(delphi_mean_guess-5 < 0)
+    {
+      gaussianFitY->SetRange(0,delphi_mean_guess+5);
+    }
+    else if(delphi_mean_guess+5 > 360 ) //we should never go beyond phi = 360, no entries there!!!
+    {
+      gaussianFitY->SetRange(delphi_mean_guess-5,360);
+    }
+    else
+    {
+      gaussianFitY->SetRange(delphi_mean_guess-5,delphi_mean_guess+5);
+    }
+
+
+
+/*
+    SkewGaus
+    // set initial guesses for amplitude, width, skewness, and location -starting assumption is gaussian so set par[2] = 0
+    // par[0] = amplitude
+    // par[1] = width
+    // par[2] = skewness (can be negative)
+    // par[3] = location
+
+    gaussianFitX->SetParameter(0,projectionX->GetMaximum());
+    gaussianFitX->SetParameter(1,projectionX->GetRMS());
+    gaussianFitX->SetParameter(2,0);
+    gaussianFitX->SetParameter(3,projectionX->GetMean());
+    if(deltheta_guess-20 < 0)
+    {
+      gaussianFitX->SetParLimits(3,0,deltheta_guess+20);
+    }
+    else
+    {
+      gaussianFitX->SetParLimits(3,deltheta_guess-20,deltheta_guess+20);
+    }
+
+    gaussianFitY->SetParameter(0,projectionY->GetMaximum());
+    gaussianFitY->SetParameter(1,projectionY->GetRMS());
+    gaussianFitY->SetParameter(2,0);
+    gaussianFitY->SetParameter(3,projectionY->GetMean());
+    if(delphi_guess-20 < 0)
+    {
+      gaussianFitY->SetParLimits(3,0,delphi_guess+20);
+    }
+    else
+    {
+      gaussianFitY->SetParLimits(3,delphi_guess-20,delphi_guess+20);
+    }
+*/
+
+    // Fit Gaussian to the projection
+    projectionX->Fit(gaussianFitX, "QR");
+
+    // Get mean value from the fit
+    float meantheta = gaussianFitX->GetMaximumX(1);
+
+    // Fit Gaussian to the projection
+    projectionY->Fit(gaussianFitY, "QR");
+
+    // Get mean value from the fit
+    float meanphi = gaussianFitY->GetMaximumX(1);
+
+    //10 deg. coordinate shift 
+    if( (meanphi - phi_trk) > 350 ){ meanphi -= 360 ;}
+    else if( (phi_trk - meanphi) > 350 ){ meanphi += 360;} 
+
+    //double Avethetafunc =  gaussianFitX->GetParameter(1);
+    //double Avephifunc = gaussianFitY->GetParameter(1);
+
+
+    //diagnosis murder
+    if( TMath::Abs(meantheta - theta_trk) > 10 || TMath::Abs(meanphi - phi_trk) > 10 ){  std::cout<<"This one did POOR"<<std::endl; }
+/*
+    //{
+    // Call the pause command  (debug)
+      TCanvas *canvas = new TCanvas("canvas", "Divided Canvas", 800, 400);
+      canvas->Divide(2, 1);
+      canvas->cd(1);
+      projectionX->Draw("");
+      gaussianFitX->Draw("same");
+      canvas->cd(2);
+      projectionY->Draw("");
+      gaussianFitY->Draw("same");
+      std::cout << "Gaus Fit Maximums: deltheta: "<< meantheta << ", delphi: " << meanphi << std::endl;
+      std::cout << "Program Is Paused for 20 min\n"<< std::endl; 
+      gSystem->Sleep(1200000);
+      std::cout << "Terminated\n"; 
+    //}
+*/
+
+    delete gaussianFitX;
+    delete gaussianFitY;
+
+    delete clonedHist;
+
+    // Return mean values as a pair
+    return std::make_pair(meantheta, meanphi);
+
+}
+                                   
+float TpcDirectLaserReconstruction::CalculateRadialXingAngle(float x, float y, float x0, float y0) 
+{
+
+  // Calculate the angle between two lines in the x-y plane
+  float angle1 = TMath::Abs(TMath::ATan2(y, x)); //should be b/w 0 and pi
+  float angle2 = TMath::Abs(TMath::ATan2(y-y0, x-x0)); //should also be b/w 0 and pi
+
+  float angle = TMath::Abs(angle2 - angle1);  
+
+  //if angle > 90 deg., take supplement of it
+  if(angle > M_PI/2){angle = M_PI - angle;}
+  
+  return angle;
+
+}
+
+std::pair<float, float> TpcDirectLaserReconstruction::parameterizeLine(float theta, float phi, float x0, float y0, float z0, float z)
+{
+
+  //determine the phi offset
+  float phi_offset = 0.;
+
+  if((x0 > 0 && y0 > 0) && z0 > 0){ phi_offset = 15.*TMath::Pi()/180.; } //laser 0 - QI
+  else if((x0 < 0 && y0 > 0 ) && z0 > 0){ phi_offset = 105.*TMath::Pi()/180.; } //laser 1 - QII
+  else if((x0 < 0 && y0 < 0) && z0 > 0){ phi_offset = 195.*TMath::Pi()/180.; } //laser 2 - QIII
+  else if((x0 > 9 && y0 < 0) && z0 >0){ phi_offset = 285.*TMath::Pi()/180.; } //laser 3 - QIV
+  else if((x0 > 0 && y0 < 0) && z0 < 0){ phi_offset = 15.*TMath::Pi()/180.; } //laser 4 - QIV
+  else if((x0 > 0 && y0 > 0) && z0 < 0){ phi_offset = -75.*TMath::Pi()/180.; } //laser 5 - QI
+  else if((x0 < 0 && y0 > 0) && z0 < 0){ phi_offset = -165.*TMath::Pi()/180.; } //laser 6 - QII
+  else if((x0 < 0 && y0 < 0) && z0 < 0){ phi_offset = -255.*TMath::Pi()/180.; } //laser 7 - QIII
+
+  //if(z0>0){ phi_offset = 15.*TMath::Pi()/180.; }
+  //else { phi_offset = 15.*TMath::Pi()/180.; }
+
+  float x = 0;
+  float y = 0;
+
+  if( z0 > 0) //origins at NS
+  {
+    // assume angle inputs are given in radians
+    x = ((z0 - z)*TMath::Tan(theta)*TMath::Cos((phi + phi_offset))) + x0;
+    y = ((z0 - z)*TMath::Tan(theta)*TMath::Sin((phi + phi_offset))) + y0;
+  }
+  else //origins at SS
+  {
+    // assume angle inputs are given in radians
+    x = -1.*((z0 - z)*TMath::Tan(theta)*TMath::Cos(-1.*(phi + phi_offset))) + x0;
+    y = -1.*((z0 - z)*TMath::Tan(theta)*TMath::Sin(-1.*(phi + phi_offset))) + y0;
+  }
+ 
+
+  return std::make_pair(x, y); //theta is X, phi is Y
+
+}

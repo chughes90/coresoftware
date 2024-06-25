@@ -99,6 +99,18 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
 
   bool sameSign(float num1, float num2);
 
+  //iterative max
+  std::pair<float, float> IterativefindMaxCoords(TH2* hist);
+
+  //Gaussian fit max
+  std::pair<float, float> fitGaussianAndGetMean(TH2 *hist,float deltheta_guess,float delphi_guess,float theta_trk, float phi_trk);
+
+  //line parameterization (give theta,phi,,x0,y0,z0,z get x,y)
+  std::pair<float, float> parameterizeLine(float theta, float phi, float x0, float y0, float z0, float z);
+
+  //Calculate radial x-ing angle
+  float CalculateRadialXingAngle(float x, float y, float x0, float y0); 
+
   /// output file
   std::string m_outputfile = "TpcSpaceChargeMatrices.root";
 
@@ -192,9 +204,15 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
   TH2 *h_adc_vs_DCA_true = nullptr;
   TH2 *h_adc_sum_ratio_lasrangle = nullptr;
   TH2 *h_num_sum_ratio_lasrangle = nullptr;
+
+
+  TNtuple *h_sum_ADC_Nhits_ratio_lasrangle_DCA_true = nullptr;
+  TNtuple *h_sum_ADC_Nhits_ratio_lasrangle_DCA_reco = nullptr;
+//_______________________________________
+
    
   //TNtuple *h_origins = nullptr;
-  //TNtuple *h_assoc_hits = nullptr;
+  TNtuple *h_assoc_hits = nullptr;
   TNtuple *h_bright_hits_laser1 = nullptr;
   TNtuple *h_bright_hits_laser2 = nullptr;
   TNtuple *h_bright_hits_laser3 = nullptr;
@@ -227,6 +245,7 @@ class TpcDirectLaserReconstruction: public SubsysReco, public PHParameterInterfa
   TH2* h_zr = nullptr;
   TH2* h_zr_pca = nullptr;
   TH2* h_dz_z = nullptr;
+  TNtuple *h_clusters_distortions = nullptr;
   //TNtuple *h_clusters = nullptr;
 
   //@}
